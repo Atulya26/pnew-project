@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
+import { cn } from '@/lib/utils'
 import type { Project, ProjectInsert } from '@/types/project'
 
 export default function AdminDashboard() {
@@ -150,119 +151,121 @@ export default function AdminDashboard() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+        <div className="min-h-dvh bg-neutral-950">
             {/* Header */}
-            <header className="sticky top-0 z-40 backdrop-blur-xl bg-slate-900/80 border-b border-white/10">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-                    <h1 className="text-2xl font-bold text-white">Portfolio Admin</h1>
-                    <div className="flex items-center gap-4">
-                        <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
+            <header className="sticky top-0 z-40 bg-neutral-950 border-b border-neutral-800">
+                <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+                    <h1 className="text-lg font-semibold text-white">Projects</h1>
+                    <div className="flex items-center gap-3">
+                        <button
                             onClick={() => handleOpenModal()}
-                            className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-medium rounded-xl shadow-lg hover:shadow-purple-500/25 transition-all"
+                            className={cn(
+                                'px-3 py-1.5 bg-white text-neutral-900 text-sm font-medium rounded-lg',
+                                'hover:bg-neutral-100 active:bg-neutral-200',
+                                'transition-colors duration-150'
+                            )}
                         >
-                            + Add Project
-                        </motion.button>
+                            Add project
+                        </button>
                         <button
                             onClick={handleSignOut}
-                            className="px-4 py-2 text-white/60 hover:text-white transition-colors"
+                            className="px-3 py-1.5 text-neutral-500 hover:text-neutral-300 text-sm transition-colors duration-150"
                         >
-                            Sign Out
+                            Sign out
                         </button>
                     </div>
                 </div>
             </header>
 
             {/* Main Content */}
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
                 {loading ? (
                     <div className="flex items-center justify-center py-20">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500" />
+                        <div className="size-8 border-2 border-neutral-700 border-t-neutral-400 rounded-full animate-spin" />
                     </div>
                 ) : projects.length === 0 ? (
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="text-center py-20"
-                    >
-                        <div className="w-24 h-24 mx-auto mb-6 bg-white/5 rounded-full flex items-center justify-center">
-                            <svg className="w-12 h-12 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="text-center py-20">
+                        <div className="size-16 mx-auto mb-4 bg-neutral-900 rounded-xl flex items-center justify-center">
+                            <svg className="size-7 text-neutral-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
                         </div>
-                        <h2 className="text-2xl font-bold text-white mb-2">No projects yet</h2>
-                        <p className="text-white/60 mb-6">Start showcasing your amazing designs!</p>
-                        <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
+                        <h2 className="text-lg font-medium text-white mb-1 text-balance">No projects yet</h2>
+                        <p className="text-sm text-neutral-500 mb-6 text-pretty">Add your first design project</p>
+                        <button
                             onClick={() => handleOpenModal()}
-                            className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-medium rounded-xl shadow-lg"
+                            className={cn(
+                                'px-4 py-2 bg-white text-neutral-900 text-sm font-medium rounded-lg',
+                                'hover:bg-neutral-100 active:bg-neutral-200',
+                                'transition-colors duration-150'
+                            )}
                         >
-                            Create Your First Project
-                        </motion.button>
-                    </motion.div>
+                            Add project
+                        </button>
+                    </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <AnimatePresence>
-                            {projects.map((project, index) => (
-                                <motion.div
-                                    key={project.id}
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, scale: 0.95 }}
-                                    transition={{ delay: index * 0.1 }}
-                                    className="group backdrop-blur-xl bg-white/5 rounded-2xl border border-white/10 overflow-hidden hover:border-purple-500/50 transition-all duration-300"
-                                >
-                                    {/* Project Thumbnail */}
-                                    <div className="aspect-[4/3] bg-white/5 relative overflow-hidden">
-                                        {project.images && project.images.length > 0 ? (
-                                            <img
-                                                src={project.images[0]}
-                                                alt={project.title}
-                                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                            />
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center text-white/20">
-                                                <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                                </svg>
-                                            </div>
-                                        )}
-                                        {/* Image count badge */}
-                                        {project.images && project.images.length > 1 && (
-                                            <div className="absolute top-3 right-3 px-2 py-1 bg-black/50 backdrop-blur-sm rounded-lg text-white text-xs">
-                                                +{project.images.length - 1} more
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Project Info */}
-                                    <div className="p-4">
-                                        <h3 className="text-lg font-semibold text-white mb-1">{project.title}</h3>
-                                        {project.description && (
-                                            <p className="text-white/60 text-sm line-clamp-2">{project.description}</p>
-                                        )}
-
-                                        {/* Actions */}
-                                        <div className="flex gap-2 mt-4">
-                                            <button
-                                                onClick={() => handleOpenModal(project)}
-                                                className="flex-1 px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white/80 text-sm transition-all"
-                                            >
-                                                Edit
-                                            </button>
-                                            <button
-                                                onClick={() => handleDeleteProject(project.id)}
-                                                className="px-3 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-xl text-red-400 text-sm transition-all"
-                                            >
-                                                Delete
-                                            </button>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {projects.map((project) => (
+                            <div
+                                key={project.id}
+                                className="group bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden hover:border-neutral-700 transition-colors duration-150"
+                            >
+                                {/* Thumbnail */}
+                                <div className="aspect-[4/3] bg-neutral-800 relative overflow-hidden">
+                                    {project.images && project.images.length > 0 ? (
+                                        <img
+                                            src={project.images[0]}
+                                            alt={project.title}
+                                            className="w-full h-full object-cover"
+                                        />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center">
+                                            <svg className="size-10 text-neutral-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                            </svg>
                                         </div>
+                                    )}
+                                    {project.images && project.images.length > 1 && (
+                                        <span className="absolute top-2 right-2 px-1.5 py-0.5 bg-neutral-900/80 rounded text-xs text-neutral-300 tabular-nums">
+                                            +{project.images.length - 1}
+                                        </span>
+                                    )}
+                                </div>
+
+                                {/* Info */}
+                                <div className="p-3">
+                                    <h3 className="text-sm font-medium text-white truncate">{project.title}</h3>
+                                    {project.description && (
+                                        <p className="text-xs text-neutral-500 mt-0.5 line-clamp-1">{project.description}</p>
+                                    )}
+
+                                    {/* Actions */}
+                                    <div className="flex gap-2 mt-3">
+                                        <button
+                                            onClick={() => handleOpenModal(project)}
+                                            className={cn(
+                                                'flex-1 px-2 py-1.5 bg-neutral-800 border border-neutral-700 rounded-lg',
+                                                'text-xs text-neutral-300 hover:bg-neutral-700 hover:text-white',
+                                                'transition-colors duration-150'
+                                            )}
+                                        >
+                                            Edit
+                                        </button>
+                                        <button
+                                            onClick={() => handleDeleteProject(project.id)}
+                                            className={cn(
+                                                'px-2 py-1.5 bg-neutral-800 border border-neutral-700 rounded-lg',
+                                                'text-xs text-red-400 hover:bg-red-950/50 hover:border-red-900/50',
+                                                'transition-colors duration-150'
+                                            )}
+                                            aria-label={`Delete ${project.title}`}
+                                        >
+                                            Delete
+                                        </button>
                                     </div>
-                                </motion.div>
-                            ))}
-                        </AnimatePresence>
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 )}
             </main>
@@ -270,94 +273,124 @@ export default function AdminDashboard() {
             {/* Modal */}
             <AnimatePresence>
                 {showModal && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-                        onClick={() => setShowModal(false)}
-                    >
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                         <motion.div
-                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                            onClick={(e) => e.stopPropagation()}
-                            className="w-full max-w-2xl max-h-[90vh] overflow-y-auto backdrop-blur-xl bg-slate-900/95 rounded-2xl border border-white/20 shadow-2xl"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.15 }}
+                            className="absolute inset-0 bg-black/60"
+                            onClick={() => setShowModal(false)}
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.96 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.96 }}
+                            transition={{ duration: 0.15, ease: 'easeOut' }}
+                            className="relative w-full max-w-lg max-h-[90dvh] overflow-y-auto bg-neutral-900 border border-neutral-800 rounded-xl shadow-2xl"
                         >
-                            <div className="p-6 border-b border-white/10">
-                                <h2 className="text-2xl font-bold text-white">
-                                    {editingProject ? 'Edit Project' : 'Add New Project'}
+                            <div className="sticky top-0 bg-neutral-900 border-b border-neutral-800 px-5 py-4 flex items-center justify-between">
+                                <h2 className="text-base font-semibold text-white">
+                                    {editingProject ? 'Edit project' : 'New project'}
                                 </h2>
+                                <button
+                                    onClick={() => setShowModal(false)}
+                                    className="size-8 flex items-center justify-center text-neutral-500 hover:text-neutral-300 transition-colors"
+                                    aria-label="Close modal"
+                                >
+                                    <svg className="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
                             </div>
 
-                            <form onSubmit={handleSaveProject} className="p-6 space-y-6">
+                            <form onSubmit={handleSaveProject} className="p-5 space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-white/80 mb-2">Title</label>
+                                    <label className="block text-sm font-medium text-neutral-300 mb-1.5">Title</label>
                                     <input
                                         type="text"
                                         value={title}
                                         onChange={(e) => setTitle(e.target.value)}
                                         required
-                                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                        className={cn(
+                                            'w-full px-3 py-2.5 bg-neutral-800 border border-neutral-700 rounded-lg',
+                                            'text-white text-sm placeholder:text-neutral-500',
+                                            'focus:outline-none focus:ring-2 focus:ring-neutral-600 focus:border-transparent',
+                                            'transition-shadow duration-150'
+                                        )}
                                         placeholder="Project title"
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-white/80 mb-2">Description</label>
+                                    <label className="block text-sm font-medium text-neutral-300 mb-1.5">Description</label>
                                     <textarea
                                         value={description}
                                         onChange={(e) => setDescription(e.target.value)}
-                                        rows={3}
-                                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
-                                        placeholder="Brief description of the project"
+                                        rows={2}
+                                        className={cn(
+                                            'w-full px-3 py-2.5 bg-neutral-800 border border-neutral-700 rounded-lg',
+                                            'text-white text-sm placeholder:text-neutral-500',
+                                            'focus:outline-none focus:ring-2 focus:ring-neutral-600 focus:border-transparent',
+                                            'transition-shadow duration-150 resize-none'
+                                        )}
+                                        placeholder="Brief description"
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-white/80 mb-2">Design Thoughts</label>
+                                    <label className="block text-sm font-medium text-neutral-300 mb-1.5">Design thoughts</label>
                                     <textarea
                                         value={thoughts}
                                         onChange={(e) => setThoughts(e.target.value)}
-                                        rows={4}
-                                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
-                                        placeholder="Share your design ideas and thought process..."
+                                        rows={3}
+                                        className={cn(
+                                            'w-full px-3 py-2.5 bg-neutral-800 border border-neutral-700 rounded-lg',
+                                            'text-white text-sm placeholder:text-neutral-500',
+                                            'focus:outline-none focus:ring-2 focus:ring-neutral-600 focus:border-transparent',
+                                            'transition-shadow duration-150 resize-none'
+                                        )}
+                                        placeholder="Your ideas and thought process..."
                                     />
                                 </div>
 
                                 {/* Image Upload */}
                                 <div>
-                                    <label className="block text-sm font-medium text-white/80 mb-2">Images</label>
-                                    <div className="space-y-4">
-                                        {/* Uploaded Images Grid */}
+                                    <label className="block text-sm font-medium text-neutral-300 mb-1.5">Images</label>
+                                    <div className="space-y-3">
                                         {images.length > 0 && (
-                                            <div className="grid grid-cols-3 gap-3">
+                                            <div className="grid grid-cols-4 gap-2">
                                                 {images.map((url, index) => (
-                                                    <div key={index} className="relative aspect-square rounded-xl overflow-hidden">
+                                                    <div key={index} className="relative aspect-square rounded-lg overflow-hidden bg-neutral-800">
                                                         <img src={url} alt="" className="w-full h-full object-cover" />
                                                         <button
                                                             type="button"
                                                             onClick={() => handleRemoveImage(index)}
-                                                            className="absolute top-2 right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white text-sm hover:bg-red-600 transition-colors"
+                                                            className="absolute top-1 right-1 size-5 bg-neutral-900/80 rounded-full flex items-center justify-center text-neutral-400 hover:text-white transition-colors"
+                                                            aria-label="Remove image"
                                                         >
-                                                            ×
+                                                            <svg className="size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                            </svg>
                                                         </button>
                                                     </div>
                                                 ))}
                                             </div>
                                         )}
 
-                                        {/* Upload Button */}
                                         <label className="block cursor-pointer">
-                                            <div className="border-2 border-dashed border-white/20 rounded-xl p-6 text-center hover:border-purple-500/50 transition-colors">
+                                            <div className={cn(
+                                                'border border-dashed border-neutral-700 rounded-lg p-4 text-center',
+                                                'hover:border-neutral-600 transition-colors duration-150'
+                                            )}>
                                                 {uploading ? (
-                                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mx-auto" />
+                                                    <div className="size-6 mx-auto border-2 border-neutral-600 border-t-neutral-400 rounded-full animate-spin" />
                                                 ) : (
                                                     <>
-                                                        <svg className="w-10 h-10 mx-auto text-white/40 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                                        <svg className="size-6 mx-auto text-neutral-600 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v12m6-6H6" />
                                                         </svg>
-                                                        <p className="text-white/60 text-sm">Click to upload images</p>
+                                                        <p className="text-xs text-neutral-500">Click to upload</p>
                                                     </>
                                                 )}
                                             </div>
@@ -374,26 +407,32 @@ export default function AdminDashboard() {
                                 </div>
 
                                 {/* Actions */}
-                                <div className="flex gap-3 pt-4">
+                                <div className="flex gap-2 pt-2">
                                     <button
                                         type="button"
                                         onClick={() => setShowModal(false)}
-                                        className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white font-medium hover:bg-white/10 transition-all"
+                                        className={cn(
+                                            'flex-1 px-3 py-2.5 bg-neutral-800 border border-neutral-700 rounded-lg',
+                                            'text-sm text-neutral-300 font-medium hover:bg-neutral-700',
+                                            'transition-colors duration-150'
+                                        )}
                                     >
                                         Cancel
                                     </button>
-                                    <motion.button
-                                        whileHover={{ scale: 1.02 }}
-                                        whileTap={{ scale: 0.98 }}
+                                    <button
                                         type="submit"
-                                        className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-medium rounded-xl shadow-lg"
+                                        className={cn(
+                                            'flex-1 px-3 py-2.5 bg-white text-neutral-900 text-sm font-medium rounded-lg',
+                                            'hover:bg-neutral-100 active:bg-neutral-200',
+                                            'transition-colors duration-150'
+                                        )}
                                     >
-                                        {editingProject ? 'Save Changes' : 'Create Project'}
-                                    </motion.button>
+                                        {editingProject ? 'Save' : 'Create'}
+                                    </button>
                                 </div>
                             </form>
                         </motion.div>
-                    </motion.div>
+                    </div>
                 )}
             </AnimatePresence>
         </div>
