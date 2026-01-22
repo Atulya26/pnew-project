@@ -1,0 +1,182 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import gsap from 'gsap';
+import { Observer } from 'gsap/dist/Observer';
+import GalleryCard from './GalleryCard';
+import { projects, type Project } from '@/data/projects';
+
+gsap.registerPlugin(Observer);
+
+const CARD_SPACING = 240; // pixels between each card in 3D space
+const Y_OFFSET_PER_CARD = 84; // vertical offset per card
+const Z_OFFSET_PER_CARD = 288; // depth offset per card
+const ROTATION_Y = -50; // degrees
+
+export default function ScrollGallery() {
+    const containerRef = useRef<HTMLDivElement>(null);
+    const wrapperRef = useRef<HTMLDivElement>(null);
+    const scrollProgress = useRef(0);
+    const targetProgress = useRef(0);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    useEffect(() => {
+        if (!mounted || !containerRef.current) return;
+
+        const totalCards = projects.length;
+        const loopLength = totalCards * CARD_SPACING;
+
+        // Observer for wheel/touch/pointer events
+        const observer = Observer.create({
+            target: containerRef.current,
+            type: 'wheel,touch,pointer',
+            wheelSpeed: -1,
+            onChangeY: (self) => {
+                targetProgress.current += self.deltaY * 0.5;
+            },
+            tolerance: 10,
+            preventDefault: true,
+        });
+
+        // Animation loop using GSAP ticker
+        const tick = () => {
+            // Smooth interpolation
+            scrollProgress.current += (targetProgress.current - scrollProgress.current) * 0.08;
+
+            // Update each card position
+            const cards = wrapperRef.current?.querySelectorAll('.gallery-card');
+            if (!cards) return;
+
+            cards.forEach((card, i) => {
+                const htmlCard = card as HTMLElement;
+
+                // Calculate position with wrapping
+                let offset = i * CARD_SPACING - scrollProgress.current;
+
+                // Wrap around for infinite scroll feel
+                offset = ((offset % loopLength) + loopLength) % loopLength;
+                if (offset > loopLength / 2) {
+                    offset -= loopLength;
+                }
+
+                const x = offset;
+                const y = (offset / CARD_SPACING) * Y_OFFSET_PER_CARD;
+                const z = (offset / CARD_SPACING) * Z_OFFSET_PER_CARD;
+
+                // Brightness based on depth (closer = brighter)
+                const normalizedZ = Math.abs(z) / (loopLength / 2);
+                const brightness = Math.max(0.3, 1 - normalizedZ * 0.7);
+
+                // Z-index based on depth
+                const zIndex = Math.round(1000 - Math.abs(offset));
+
+                htmlCard.style.transform = `translate3d(${x}px, ${y}px, ${z}px) rotateY(${ROTATION_Y}deg)`;
+                htmlCard.style.filter = `brightness(${brightness})`;
+                htmlCard.style.zIndex = String(zIndex);
+            });
+        };
+
+        gsap.ticker.add(tick);
+
+        // Keyboard navigation
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+                targetProgress.current += 100; // Adjust scroll amount as needed
+            } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+                targetProgress.current -= 100;
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+
+        return () => {
+            observer.kill();
+            gsap.ticker.remove(tick);
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [mounted]);
+
+    if (!mounted) {
+        return (
+            <div className="w-screen h-screen bg-black flex items-center justify-center">
+                <div className="text-white text-xl">Loading...</div>
+            </div>
+        );
+    }
+
+    return (
+        <div
+            ref={containerRef}
+            className="w-screen h-screen overflow-hidden bg-black touch-none"
+        >
+            {/* Header - moved to right */}
+            <div
+                className="absolute z-50 font-sans text-right"
+                style={{
+                    fontWeight: 600,
+                    letterSpacing: '-0.02em',
+                    top: '3vw',
+                    right: '3vw',
+                }}
+            >
+                <div
+                    className="text-white leading-none tracking-tight font-medium"
+                    style={{
+                        fontSize: 'clamp(24px, 4vw, 48px)',
+                        lineHeight: 0.9,
+                    }}
+                >
+                    Atulya
+                </div>
+            </div>
+
+            {/* Scroll hint - moved to left */}
+            <div
+                className="absolute z-50 flex items-center font-mono uppercase text-white"
+                style={{
+                    bottom: '3vw',
+                    left: '3vw',
+                    fontSize: '10px',
+                    letterSpacing: '0.05em',
+                }}
+            >
+                scroll to explore
+            </div>
+
+            {/* 3D Gallery Container */}
+            <div
+                className="relative w-full h-full flex items-center justify-center"
+                style={{
+                    perspective: '2000px',
+                    perspectiveOrigin: '10% 10%',
+                }}
+            >
+                <div
+                    ref={wrapperRef}
+                    className="relative flex items-center justify-center"
+                    style={{
+                        transformStyle: 'preserve-3d',
+                        transform: 'translateY(100px)',
+                    }}
+                >
+                    {projects.map((project: Project, index: number) => (
+                        <GalleryCard
+                            key={project.id}
+                            index={index}
+                            image={project.image}
+                            title={project.title}
+                            baseRotationY={ROTATION_Y}
+                            style={{
+                                transform: `translate3d(${index * CARD_SPACING}px, ${index * Y_OFFSET_PER_CARD}px, ${index * Z_OFFSET_PER_CARD}px) rotateY(${ROTATION_Y}deg)`,
+                            }}
+                        />
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+}

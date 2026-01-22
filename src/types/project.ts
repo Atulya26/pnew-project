@@ -3,6 +3,7 @@ export interface Project {
     title: string
     description: string | null
     thoughts: string | null
+    category?: string
     images: string[]
     created_at: string
     updated_at: string
