@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import gsap from 'gsap';
 import { Observer } from 'gsap/dist/Observer';
 import GalleryCard from './GalleryCard';
+import CardDetail from './CardDetail';
 import { projects, type Project } from '@/data/projects';
 
 gsap.registerPlugin(Observer);
@@ -13,15 +14,31 @@ const Y_OFFSET_PER_CARD = 84; // vertical offset per card
 const Z_OFFSET_PER_CARD = 288; // depth offset per card
 const ROTATION_Y = -50; // degrees
 
+interface SelectedCard {
+    project: Project;
+    rect: DOMRect;
+}
+
 export default function ScrollGallery() {
     const containerRef = useRef<HTMLDivElement>(null);
     const wrapperRef = useRef<HTMLDivElement>(null);
     const scrollProgress = useRef(0);
     const targetProgress = useRef(0);
+    const cardOffsets = useRef<number[]>(new Array(projects.length).fill(0));
     const [mounted, setMounted] = useState(false);
+    const [selectedCard, setSelectedCard] = useState<SelectedCard | null>(null);
+    const [, forceUpdate] = useState(0);
 
     useEffect(() => {
         setMounted(true);
+    }, []);
+
+    const handleCardClick = useCallback((project: Project, rect: DOMRect) => {
+        setSelectedCard({ project, rect });
+    }, []);
+
+    const handleCloseDetail = useCallback(() => {
+        setSelectedCard(null);
     }, []);
 
     useEffect(() => {
@@ -34,8 +51,10 @@ export default function ScrollGallery() {
         const observer = Observer.create({
             target: containerRef.current,
             type: 'wheel,touch,pointer',
-            wheelSpeed: -1,
+            wheelSpeed: 1,
             onChangeY: (self) => {
+                // Don't scroll if card detail is open
+                if (selectedCard) return;
                 targetProgress.current += self.deltaY * 0.5;
             },
             tolerance: 10,
@@ -43,6 +62,7 @@ export default function ScrollGallery() {
         });
 
         // Animation loop using GSAP ticker
+        let frameCount = 0;
         const tick = () => {
             // Smooth interpolation
             scrollProgress.current += (targetProgress.current - scrollProgress.current) * 0.08;
@@ -63,6 +83,9 @@ export default function ScrollGallery() {
                     offset -= loopLength;
                 }
 
+                // Store offset for parallax calculation
+                cardOffsets.current[i] = offset;
+
                 const x = offset;
                 const y = (offset / CARD_SPACING) * Y_OFFSET_PER_CARD;
                 const z = (offset / CARD_SPACING) * Z_OFFSET_PER_CARD;
@@ -78,14 +101,21 @@ export default function ScrollGallery() {
                 htmlCard.style.filter = `brightness(${brightness})`;
                 htmlCard.style.zIndex = String(zIndex);
             });
+
+            // Force update every 3 frames to update parallax offsets
+            frameCount++;
+            if (frameCount % 3 === 0) {
+                forceUpdate(prev => prev + 1);
+            }
         };
 
         gsap.ticker.add(tick);
 
         // Keyboard navigation
         const handleKeyDown = (e: KeyboardEvent) => {
+            if (selectedCard) return; // Don't navigate while detail is open
             if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
-                targetProgress.current += 100; // Adjust scroll amount as needed
+                targetProgress.current += 100;
             } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
                 targetProgress.current -= 100;
             }
@@ -98,7 +128,7 @@ export default function ScrollGallery() {
             gsap.ticker.remove(tick);
             window.removeEventListener('keydown', handleKeyDown);
         };
-    }, [mounted]);
+    }, [mounted, selectedCard]);
 
     if (!mounted) {
         return (
@@ -167,9 +197,10 @@ export default function ScrollGallery() {
                         <GalleryCard
                             key={project.id}
                             index={index}
-                            image={project.image}
-                            title={project.title}
+                            project={project}
                             baseRotationY={ROTATION_Y}
+                            scrollOffset={cardOffsets.current[index]}
+                            onCardClick={handleCardClick}
                             style={{
                                 transform: `translate3d(${index * CARD_SPACING}px, ${index * Y_OFFSET_PER_CARD}px, ${index * Z_OFFSET_PER_CARD}px) rotateY(${ROTATION_Y}deg)`,
                             }}
@@ -177,6 +208,15 @@ export default function ScrollGallery() {
                     ))}
                 </div>
             </div>
+
+            {/* Card Detail Overlay */}
+            {selectedCard && (
+                <CardDetail
+                    project={selectedCard.project}
+                    sourceRect={selectedCard.rect}
+                    onClose={handleCloseDetail}
+                />
+            )}
         </div>
     );
 }

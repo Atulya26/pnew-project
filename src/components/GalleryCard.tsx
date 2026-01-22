@@ -2,27 +2,45 @@
 
 import { useRef, useState, useEffect } from 'react';
 import Image from 'next/image';
+import type { Project } from '@/data/projects';
 
 interface GalleryCardProps {
     index: number;
-    image: string;
-    title: string;
+    project: Project;
     style: React.CSSProperties;
     baseRotationY: number;
+    scrollOffset?: number;
+    onCardClick?: (project: Project, rect: DOMRect) => void;
 }
 
-export default function GalleryCard({ index, image, title, style, baseRotationY }: GalleryCardProps) {
+export default function GalleryCard({
+    index,
+    project,
+    style,
+    baseRotationY,
+    scrollOffset = 0,
+    onCardClick
+}: GalleryCardProps) {
     const cardRef = useRef<HTMLDivElement>(null);
+    const imageRef = useRef<HTMLDivElement>(null);
     const [isHovered, setIsHovered] = useState(false);
     const [labelPosition, setLabelPosition] = useState<'top' | 'bottom'>('bottom');
+
+    // Parallax effect on the inner image during scroll
+    useEffect(() => {
+        if (imageRef.current) {
+            // Subtle parallax movement based on scroll offset
+            const parallaxY = scrollOffset * 0.15;
+            const parallaxScale = 1 + Math.abs(scrollOffset) * 0.0001;
+            imageRef.current.style.transform = `translateY(${parallaxY}px) scale(${Math.min(parallaxScale, 1.05)})`;
+        }
+    }, [scrollOffset]);
 
     useEffect(() => {
         if (isHovered && cardRef.current) {
             const rect = cardRef.current.getBoundingClientRect();
             const viewportHeight = window.innerHeight;
 
-            // If card is in bottom half of screen, show label on top
-            // If card is in top half, show label on bottom
             if (rect.top + rect.height / 2 > viewportHeight / 2) {
                 setLabelPosition('top');
             } else {
@@ -31,43 +49,67 @@ export default function GalleryCard({ index, image, title, style, baseRotationY 
         }
     }, [isHovered]);
 
+    const handleClick = () => {
+        if (cardRef.current && onCardClick) {
+            const rect = cardRef.current.getBoundingClientRect();
+            onCardClick(project, rect);
+        }
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleClick();
+        }
+    };
+
     return (
         <div
             ref={cardRef}
-            className="gallery-card absolute flex items-center justify-center shadow-2xl cursor-pointer focus:outline-none"
+            data-card-id={project.id}
+            className="gallery-card absolute flex items-center justify-center shadow-2xl cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
             role="button"
             tabIndex={0}
             style={{
                 width: 'clamp(280px, 20vw, 320px)',
                 height: 'clamp(350px, 25vw, 400px)',
                 transformStyle: 'preserve-3d',
-                transition: 'filter 0.3s ease',
+                transition: 'filter 0.3s ease, box-shadow 0.3s ease',
                 ...style,
             }}
+            onClick={handleClick}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
             onFocus={() => setIsHovered(true)}
             onBlur={() => setIsHovered(false)}
-            onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    // Placeholder for future click action
-                    e.preventDefault();
-                }
-            }}
+            onKeyDown={handleKeyDown}
         >
-            {/* Image */}
+            {/* Image with parallax container */}
             <div className="absolute inset-0 overflow-hidden rounded">
-                <Image
-                    src={image}
-                    alt={title}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 280px, 320px"
-                    priority={index < 3}
-                />
+                <div
+                    ref={imageRef}
+                    className="absolute inset-[-10%] w-[120%] h-[120%] transition-transform duration-100 ease-out"
+                >
+                    <Image
+                        src={project.image}
+                        alt={project.title}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 768px) 280px, 320px"
+                        priority={index < 3}
+                    />
+                </div>
             </div>
 
-
+            {/* Hover overlay glow */}
+            {isHovered && (
+                <div
+                    className="absolute inset-0 rounded pointer-events-none"
+                    style={{
+                        boxShadow: '0 0 40px rgba(255,255,255,0.15), inset 0 0 0 1px rgba(255,255,255,0.1)',
+                    }}
+                />
+            )}
 
             {/* Hover label with line - dynamic positioning */}
             {isHovered && (
@@ -81,7 +123,6 @@ export default function GalleryCard({ index, image, title, style, baseRotationY 
                         animation: 'fadeIn 0.3s ease forwards',
                     }}
                 >
-                    {/* Extending line */}
                     <div
                         className="h-px bg-white"
                         style={{
@@ -89,7 +130,6 @@ export default function GalleryCard({ index, image, title, style, baseRotationY 
                             animation: 'lineExtend 0.3s ease forwards',
                         }}
                     />
-                    {/* Title label */}
                     <div
                         className="text-white font-sans uppercase tracking-widest whitespace-nowrap ml-3"
                         style={{
@@ -100,21 +140,21 @@ export default function GalleryCard({ index, image, title, style, baseRotationY 
                             opacity: 0,
                         }}
                     >
-                        {title}
+                        {project.title}
                     </div>
                 </div>
             )}
 
             <style jsx>{`
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateX(-10px); }
-          to { opacity: 1; transform: translateX(0); }
-        }
-        @keyframes lineExtend {
-          from { width: 0; }
-          to { width: 60px; }
-        }
-      `}</style>
+                @keyframes fadeIn {
+                    from { opacity: 0; transform: translateX(-10px); }
+                    to { opacity: 1; transform: translateX(0); }
+                }
+                @keyframes lineExtend {
+                    from { width: 0; }
+                    to { width: 60px; }
+                }
+            `}</style>
         </div>
     );
 }
