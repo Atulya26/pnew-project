@@ -380,12 +380,16 @@ export default function CardDetail({ project, sourceRect, onClose }: CardDetailP
     }, [handleClose]);
 
     return (
-        <div className="fixed inset-0 z-[100]">
+        <div className="fixed inset-0 z-[100]" role="dialog" aria-modal="true" aria-labelledby="detail-title">
             {/* Overlay */}
             <div
                 ref={overlayRef}
                 className="absolute inset-0 bg-black/95 backdrop-blur-md cursor-pointer"
+                role="button"
+                tabIndex={-1}
+                aria-label="Close overlay"
                 onClick={handleClose}
+                onKeyDown={(e) => e.key === 'Enter' && handleClose()}
             />
 
             {/* Main Container */}
@@ -429,6 +433,7 @@ export default function CardDetail({ project, sourceRect, onClose }: CardDetailP
                                     {project.year}
                                 </p>
                                 <h1
+                                    id="detail-title"
                                     className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-4"
                                     style={{ letterSpacing: '-0.03em' }}
                                 >

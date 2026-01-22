@@ -67,7 +67,7 @@ export default function GalleryCard({
         <div
             ref={cardRef}
             data-card-id={project.id}
-            className="gallery-card absolute flex items-center justify-center shadow-2xl cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+            className="gallery-card absolute flex items-center justify-center shadow-2xl cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
             role="button"
             tabIndex={0}
             style={{

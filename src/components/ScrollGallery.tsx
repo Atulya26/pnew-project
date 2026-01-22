@@ -132,7 +132,7 @@ export default function ScrollGallery() {
 
     if (!mounted) {
         return (
-            <div className="w-screen h-screen bg-black flex items-center justify-center">
+            <div className="w-screen h-screen bg-black flex items-center justify-center" role="status" aria-live="polite">
                 <div className="text-white text-xl">Loading...</div>
             </div>
         );
@@ -153,7 +153,7 @@ export default function ScrollGallery() {
                     right: '3vw',
                 }}
             >
-                <div
+                <h1
                     className="text-white leading-none tracking-tight font-medium"
                     style={{
                         fontSize: 'clamp(24px, 4vw, 48px)',
@@ -161,16 +161,18 @@ export default function ScrollGallery() {
                     }}
                 >
                     Atulya
-                </div>
+                </h1>
             </div>
 
             {/* Scroll hint - moved to left */}
             <div
                 className="absolute z-50 flex items-center font-mono uppercase text-white"
+                role="status"
+                aria-label="Scroll to explore gallery"
                 style={{
                     bottom: '3vw',
                     left: '3vw',
-                    fontSize: '10px',
+                    fontSize: '11px',
                     letterSpacing: '0.05em',
                 }}
             >
