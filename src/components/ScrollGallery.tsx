@@ -24,10 +24,20 @@ export default function ScrollGallery() {
     const wrapperRef = useRef<HTMLDivElement>(null);
     const scrollProgress = useRef(0);
     const targetProgress = useRef(0);
+    const currentSkew = useRef(0); // Current skew value for smooth interpolation
+    const currentCurve = useRef(0); // Current curve (rotateZ) value
     const cardOffsets = useRef<number[]>(new Array(projects.length).fill(0));
     const [mounted, setMounted] = useState(false);
     const [selectedCard, setSelectedCard] = useState<SelectedCard | null>(null);
     const [, forceUpdate] = useState(0);
+
+    // Velocity skew settings
+    const SKEW_MAX = 15; // Maximum skew in degrees
+    const SKEW_SMOOTHING = 0.08; // How smoothly skew follows velocity
+
+    // Curve (rotateZ) settings - subtle curve when scrolling fast
+    const CURVE_MAX = 4; // Maximum curve in degrees (keep subtle)
+    const CURVE_SMOOTHING = 0.06; // Slightly slower smoothing for curve
 
     useEffect(() => {
         setMounted(true);
@@ -63,9 +73,27 @@ export default function ScrollGallery() {
 
         // Animation loop using GSAP ticker
         let frameCount = 0;
+        let lastProgress = scrollProgress.current;
+
         const tick = () => {
             // Smooth interpolation
             scrollProgress.current += (targetProgress.current - scrollProgress.current) * 0.08;
+
+            // Calculate velocity (difference between frames)
+            const velocity = scrollProgress.current - lastProgress;
+            lastProgress = scrollProgress.current;
+
+            // Calculate target skew based on velocity (clamped to max)
+            const targetSkew = gsap.utils.clamp(-SKEW_MAX, SKEW_MAX, velocity * 0.8);
+
+            // Calculate target curve based on velocity (subtle, clamped)
+            const targetCurve = gsap.utils.clamp(-CURVE_MAX, CURVE_MAX, velocity * 0.3);
+
+            // Smooth interpolation for skew
+            currentSkew.current += (targetSkew - currentSkew.current) * SKEW_SMOOTHING;
+
+            // Smooth interpolation for curve (slightly slower for flowing feel)
+            currentCurve.current += (targetCurve - currentCurve.current) * CURVE_SMOOTHING;
 
             // Update each card position
             const cards = wrapperRef.current?.querySelectorAll('.gallery-card');
@@ -97,7 +125,8 @@ export default function ScrollGallery() {
                 // Z-index based on depth
                 const zIndex = Math.round(1000 - Math.abs(offset));
 
-                htmlCard.style.transform = `translate3d(${x}px, ${y}px, ${z}px) rotateY(${ROTATION_Y}deg)`;
+                // Apply transform with velocity-based skew and curve
+                htmlCard.style.transform = `translate3d(${x}px, ${y}px, ${z}px) rotateY(${ROTATION_Y}deg) rotateZ(${currentCurve.current}deg) skewY(${currentSkew.current}deg)`;
                 htmlCard.style.filter = `brightness(${brightness})`;
                 htmlCard.style.zIndex = String(zIndex);
             });
@@ -202,6 +231,7 @@ export default function ScrollGallery() {
                             project={project}
                             baseRotationY={ROTATION_Y}
                             scrollOffset={cardOffsets.current[index]}
+                            isSelected={selectedCard?.project.id === project.id}
                             onCardClick={handleCardClick}
                             style={{
                                 transform: `translate3d(${index * CARD_SPACING}px, ${index * Y_OFFSET_PER_CARD}px, ${index * Z_OFFSET_PER_CARD}px) rotateY(${ROTATION_Y}deg)`,

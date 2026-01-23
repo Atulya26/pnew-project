@@ -10,6 +10,7 @@ interface GalleryCardProps {
     style: React.CSSProperties;
     baseRotationY: number;
     scrollOffset?: number;
+    isSelected?: boolean; // Hide card when it's selected/opened
     onCardClick?: (project: Project, rect: DOMRect) => void;
 }
 
@@ -19,6 +20,7 @@ export default function GalleryCard({
     style,
     baseRotationY,
     scrollOffset = 0,
+    isSelected = false,
     onCardClick
 }: GalleryCardProps) {
     const cardRef = useRef<HTMLDivElement>(null);
@@ -71,10 +73,12 @@ export default function GalleryCard({
             role="button"
             tabIndex={0}
             style={{
-                width: 'clamp(280px, 20vw, 320px)',
-                height: 'clamp(350px, 25vw, 400px)',
+                width: 'clamp(260px, 18vw, 300px)',
+                height: 'clamp(347px, 24vw, 400px)', // 4:3 aspect ratio
                 transformStyle: 'preserve-3d',
-                transition: 'filter 0.3s ease, box-shadow 0.3s ease',
+                transition: 'filter 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease',
+                opacity: isSelected ? 0 : 1, // Hide when selected
+                pointerEvents: isSelected ? 'none' : 'auto',
                 ...style,
             }}
             onClick={handleClick}

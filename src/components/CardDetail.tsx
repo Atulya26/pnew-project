@@ -4,9 +4,10 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import Image from 'next/image';
 import gsap from 'gsap';
 import { Observer } from 'gsap/dist/Observer';
+import { ExpoScaleEase } from 'gsap/dist/EasePack';
 import type { Project } from '@/data/projects';
 
-gsap.registerPlugin(Observer);
+gsap.registerPlugin(Observer, ExpoScaleEase);
 
 interface CardDetailProps {
     project: Project;
@@ -54,7 +55,17 @@ export default function CardDetail({ project, sourceRect, onClose }: CardDetailP
 
         const previewRect = getPreviewRect();
 
-        // Initial state - position at source card location
+        // Calculate scale factors for smooth expo-scale-like animation
+        const scaleX = previewRect.width / sourceRect.width;
+        const scaleY = previewRect.height / sourceRect.height;
+
+        // Calculate center points for transform-based animation
+        const sourceCenterX = sourceRect.left + sourceRect.width / 2;
+        const sourceCenterY = sourceRect.top + sourceRect.height / 2;
+        const targetCenterX = previewRect.left + previewRect.width / 2;
+        const targetCenterY = previewRect.top + previewRect.height / 2;
+
+        // Initial state - position at source card location with transform origin
         gsap.set(container, {
             position: 'fixed',
             left: sourceRect.left,
@@ -62,47 +73,64 @@ export default function CardDetail({ project, sourceRect, onClose }: CardDetailP
             width: sourceRect.width,
             height: sourceRect.height,
             borderRadius: '4px',
+            rotateY: -50, // Match gallery card skew
+            transformOrigin: 'center center',
             willChange: 'transform, width, height, left, top',
         });
 
         gsap.set(overlay, { opacity: 0 });
-        gsap.set('.detail-content', { opacity: 0, y: 40 });
+        gsap.set('.detail-content', { opacity: 0, y: 60, scale: 0.95 });
 
-        // Create opening timeline - Stage 1: to preview state
-        const tl = gsap.timeline();
+        // Create opening timeline with expo-style smoothing
+        const tl = gsap.timeline({
+            defaults: { ease: 'expo.out' }
+        });
 
-        // Animate overlay
+        // Animate overlay with slight blur effect
         tl.to(overlay, {
             opacity: 1,
-            duration: 0.5,
+            duration: 0.8,
             ease: 'power2.out',
         }, 0);
 
-        // Animate container to preview size (80% centered)
+        // First: straighten the rotation smoothly
+        tl.to(container, {
+            rotateY: 0,
+            duration: 0.5,
+            ease: 'power3.out',
+        }, 0);
+
+        // Then: scale and move to preview position with expo easing
         tl.to(container, {
             left: previewRect.left,
             top: previewRect.top,
             width: previewRect.width,
             height: previewRect.height,
-            borderRadius: '16px',
-            duration: 0.6,
-            ease: 'power3.out',
-        }, 0);
+            borderRadius: '20px',
+            duration: 0.9,
+            ease: 'expo.out',
+        }, 0.05);
 
-        // Slight zoom on hero image
+        // Subtle scale overshoot for premium feel
         tl.fromTo(heroImage,
-            { scale: 1 },
-            { scale: 1.05, duration: 0.7, ease: 'power2.out' },
+            { scale: 1.2 },
+            {
+                scale: 1.05,
+                duration: 1.1,
+                ease: 'expo.out',
+            },
             0
         );
 
-        // Show title/description in preview (partial reveal)
+        // Staggered content reveal with spring-like ease
         tl.to('.detail-content', {
-            opacity: 0.8,
+            opacity: 0.85,
             y: 20,
-            duration: 0.4,
-            ease: 'power2.out',
-        }, 0.3);
+            scale: 1,
+            duration: 0.7,
+            ease: 'power3.out',
+            stagger: 0.08,
+        }, 0.35);
 
         return () => {
             tl.kill();
@@ -143,34 +171,36 @@ export default function CardDetail({ project, sourceRect, onClose }: CardDetailP
 
             const tl = gsap.timeline({
                 onComplete: () => setIsFullscreen(true),
+                defaults: { ease: 'expo.out' }
             });
 
-            // Animate to fullscreen
+            // Animate to fullscreen with expo easing
             tl.to(container, {
                 left: 0,
                 top: 0,
                 width: '100vw',
                 height: '100vh',
                 borderRadius: '0px',
-                duration: 0.5,
-                ease: 'power2.out',
+                duration: 0.8,
+                ease: 'expo.out',
             }, 0);
 
-            // Full zoom on hero
+            // Full zoom on hero with smooth deceleration
             if (heroImage) {
                 tl.to(heroImage, {
                     scale: 1.15,
-                    duration: 0.6,
-                    ease: 'power2.out',
+                    duration: 1,
+                    ease: 'expo.out',
                 }, 0);
             }
 
-            // Full content reveal
+            // Full content reveal with stagger
             tl.to('.detail-content', {
                 opacity: 1,
                 y: 0,
-                duration: 0.4,
-                ease: 'power2.out',
+                scale: 1,
+                duration: 0.6,
+                ease: 'power3.out',
                 stagger: 0.05,
             }, 0.2);
         };
@@ -294,78 +324,50 @@ export default function CardDetail({ project, sourceRect, onClose }: CardDetailP
         // Get current container position
         const currentRect = container.getBoundingClientRect();
 
-        // Calculate transform values for smooth animation
-        const scaleX = sourceRect.width / currentRect.width;
-        const scaleY = sourceRect.height / currentRect.height;
+        // IMMEDIATELY hide all content to prevent weird visuals
+        gsap.set('.detail-content', { opacity: 0, visibility: 'hidden' });
+        gsap.set(container, { overflow: 'hidden' });
 
-        // Calculate the center points
-        const currentCenterX = currentRect.left + currentRect.width / 2;
-        const currentCenterY = currentRect.top + currentRect.height / 2;
-        const targetCenterX = sourceRect.left + sourceRect.width / 2;
-        const targetCenterY = sourceRect.top + sourceRect.height / 2;
+        // Reset scroll container state immediately
+        if (scrollContainer) {
+            gsap.set(scrollContainer, { y: 0, scale: 1, scrollTop: 0 });
+        }
 
-        const translateX = targetCenterX - currentCenterX;
-        const translateY = targetCenterY - currentCenterY;
-
-        // Create smooth closing timeline using transforms
+        // Create smooth closing timeline
         const tl = gsap.timeline({
             onComplete: onClose,
         });
 
-        // First reset any pull-to-close transforms
-        if (scrollContainer) {
-            tl.to(scrollContainer, {
-                y: 0,
-                scale: 1,
-                scrollTop: 0,
-                duration: 0.2,
-                ease: 'power2.out',
-            }, 0);
-        }
-
-        // Fade out content quickly
-        tl.to('.detail-content', {
-            opacity: 0,
-            duration: 0.15,
-            ease: 'power2.in',
-        }, 0);
-
-        // Reset hero image
+        // Reset hero image smoothly
         if (heroImage) {
             tl.to(heroImage, {
                 scale: 1,
                 y: 0,
-                duration: 0.3,
+                duration: 0.5,
                 ease: 'power2.out',
             }, 0);
         }
 
-        // Smooth transform-based close animation with physics-like easing
-        // First add border radius
-        tl.to(container, {
-            borderRadius: '8px',
-            duration: 0.3,
-            ease: 'power2.out',
-        }, 0.1);
-
-        // Then animate with transform for GPU acceleration and smoothness
-        tl.to(container, {
-            x: translateX,
-            y: translateY,
-            scaleX: scaleX,
-            scaleY: scaleY,
-            rotateY: -50, // Match gallery skew
-            duration: 0.6,
-            ease: 'power2.inOut', // Smooth deceleration
-            transformOrigin: 'center center',
-        }, 0.1);
-
-        // Fade out overlay
+        // Start fading overlay
         tl.to(overlay, {
             opacity: 0,
-            duration: 0.4,
+            duration: 0.6,
             ease: 'power2.out',
         }, 0.2);
+
+        // Animate directly to target position using left/top/width/height
+        // This avoids the stretching issues of scaleX/scaleY
+        tl.to(container, {
+            left: sourceRect.left,
+            top: sourceRect.top,
+            width: sourceRect.width,
+            height: sourceRect.height,
+            borderRadius: '4px',
+            rotateY: -50, // Match gallery skew
+            duration: 0.7,
+            ease: 'expo.out',
+            transformOrigin: 'center center',
+        }, 0);
     }, [isClosing, onClose, sourceRect]);
 
     // Handle escape key
@@ -469,7 +471,7 @@ export default function CardDetail({ project, sourceRect, onClose }: CardDetailP
                             className="relative w-full min-h-screen flex items-center justify-center p-8 md:p-16 detail-content"
                         >
                             <div
-                                className="parallax-image relative w-full max-w-5xl aspect-[16/10] rounded-lg overflow-hidden shadow-2xl"
+                                className="parallax-image relative w-full max-w-5xl aspect-[4/3] rounded-lg overflow-hidden shadow-2xl"
                                 style={{ willChange: 'transform' }}
                             >
                                 <Image
