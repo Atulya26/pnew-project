@@ -321,11 +321,15 @@ export default function CardDetail({ project, sourceRect, onClose }: CardDetailP
         // Kill any observers
         observerRef.current?.kill();
 
-        // Get current container position
-        const currentRect = container.getBoundingClientRect();
-
-        // IMMEDIATELY hide all content to prevent weird visuals
+        // IMMEDIATELY hide all content to prevent ghost visuals
         gsap.set('.detail-content', { opacity: 0, visibility: 'hidden' });
+        gsap.set('.close-button', { opacity: 0, visibility: 'hidden' });
+
+        // Hide the hero image immediately - prevents ghost image issue
+        if (heroImage) {
+            gsap.set(heroImage, { opacity: 0 });
+        }
+
         gsap.set(container, { overflow: 'hidden' });
 
         // Reset scroll container state immediately
@@ -338,36 +342,40 @@ export default function CardDetail({ project, sourceRect, onClose }: CardDetailP
             onComplete: onClose,
         });
 
-        // Reset hero image smoothly
-        if (heroImage) {
-            tl.to(heroImage, {
-                scale: 1,
-                y: 0,
-                duration: 0.5,
-                ease: 'power2.out',
-            }, 0);
-        }
-
-        // Start fading overlay
+        // Fade overlay
         tl.to(overlay, {
             opacity: 0,
-            duration: 0.6,
+            duration: 0.5,
             ease: 'power2.out',
-        }, 0.2);
+        }, 0);
 
-        // Animate directly to target position using left/top/width/height
-        // This avoids the stretching issues of scaleX/scaleY
+        // Main sweeping animation - container shrinks back visibly
+        // No opacity fade until the very end so you can see it sweep back
         tl.to(container, {
             left: sourceRect.left,
             top: sourceRect.top,
             width: sourceRect.width,
             height: sourceRect.height,
             borderRadius: '4px',
-            rotateY: -50, // Match gallery skew
-            duration: 0.7,
-            ease: 'expo.out',
+            duration: 0.55,
+            ease: 'power2.inOut',
             transformOrigin: 'center center',
         }, 0);
+
+        // Apply skew smoothly during the animation
+        tl.to(container, {
+            rotateY: -50, // Match gallery skew
+            duration: 0.45,
+            ease: 'power2.inOut',
+            transformOrigin: 'center center',
+        }, 0.1);
+
+        // Fade out at the VERY END only - this gives the visual sweep
+        tl.to(container, {
+            opacity: 0,
+            duration: 0.15,
+            ease: 'power2.out',
+        }, 0.45); // Starts after most of the sweep is done
     }, [isClosing, onClose, sourceRect]);
 
     // Handle escape key
@@ -503,11 +511,12 @@ export default function CardDetail({ project, sourceRect, onClose }: CardDetailP
                     )}
                 </div>
 
-                {/* Close button - always visible */}
+                {/* Close button - hidden when closing */}
                 <button
                     onClick={handleClose}
-                    className="fixed top-6 right-6 z-[110] w-12 h-12 flex items-center justify-center rounded-full bg-black/50 hover:bg-black/70 backdrop-blur-sm transition-all text-white border border-white/10"
+                    className="close-button fixed top-6 right-6 z-[110] w-12 h-12 flex items-center justify-center rounded-full bg-black/50 hover:bg-black/70 backdrop-blur-sm transition-all text-white border border-white/10"
                     aria-label="Close"
+                    style={{ opacity: isClosing ? 0 : 1 }}
                 >
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M18 6L6 18M6 6l12 12" />

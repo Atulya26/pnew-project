@@ -9,9 +9,9 @@ import { projects, type Project } from '@/data/projects';
 
 gsap.registerPlugin(Observer);
 
-const CARD_SPACING = 240; // pixels between each card in 3D space
-const Y_OFFSET_PER_CARD = 84; // vertical offset per card
-const Z_OFFSET_PER_CARD = 288; // depth offset per card
+const CARD_SPACING = 180; // pixels between each card in 3D space (reduced for tighter layout)
+const Y_OFFSET_PER_CARD = 64; // vertical offset per card
+const Z_OFFSET_PER_CARD = 220; // depth offset per card
 const ROTATION_Y = -50; // degrees
 
 interface SelectedCard {
@@ -83,11 +83,13 @@ export default function ScrollGallery() {
             const velocity = scrollProgress.current - lastProgress;
             lastProgress = scrollProgress.current;
 
-            // Calculate target skew based on velocity (clamped to max)
-            const targetSkew = gsap.utils.clamp(-SKEW_MAX, SKEW_MAX, velocity * 0.8);
+            // Calculate target skew based on velocity (same direction regardless of scroll)
+            // Use Math.abs to keep consistent angle, then apply in NEGATIVE direction
+            const absVelocity = Math.abs(velocity);
+            const targetSkew = gsap.utils.clamp(-SKEW_MAX, 0, -absVelocity * 0.8);
 
-            // Calculate target curve based on velocity (subtle, clamped)
-            const targetCurve = gsap.utils.clamp(-CURVE_MAX, CURVE_MAX, velocity * 0.3);
+            // Calculate target curve based on velocity (same direction, subtle)
+            const targetCurve = gsap.utils.clamp(-CURVE_MAX, 0, -absVelocity * 0.3);
 
             // Smooth interpolation for skew
             currentSkew.current += (targetSkew - currentSkew.current) * SKEW_SMOOTHING;

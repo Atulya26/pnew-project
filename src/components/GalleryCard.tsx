@@ -73,8 +73,8 @@ export default function GalleryCard({
             role="button"
             tabIndex={0}
             style={{
-                width: 'clamp(260px, 18vw, 300px)',
-                height: 'clamp(347px, 24vw, 400px)', // 4:3 aspect ratio
+                width: 'clamp(320px, 22vw, 400px)',
+                height: 'clamp(240px, 16.5vw, 300px)', // 4:3 aspect ratio (1600:1200)
                 transformStyle: 'preserve-3d',
                 transition: 'filter 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease',
                 opacity: isSelected ? 0 : 1, // Hide when selected
